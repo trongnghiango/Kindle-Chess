@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  TARGET: kindlehf
+  TARGET: kindlepw2
   KOX_RELEASE: "2025.05"
   STOCKFISH_TAG: "sf_18"
 
@@ -175,5 +175,4 @@ jobs:
         with:
           name: kindlechess-kual
           path: dist/kindlechess-kual.zip
-          if-no-files-found: error
-          retention-days: 14
+      

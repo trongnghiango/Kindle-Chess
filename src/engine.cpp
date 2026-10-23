@@ -46,15 +46,41 @@ void UciEngine::log(const std::string& msg) {
 }
 
 bool UciEngine::available(const std::string& path) const {
-    return access(path.c_str(), X_OK) == 0;
+    if (access(path.c_str(), F_OK) != 0) {
+        return false;
+    }
+    // Attempt to set executable permissions
+    chmod(path.c_str(), 0755);
+    // On Kindle VFAT mounts, access(X_OK) often fails due to mount fmask/showexec
+    // even though the binary is runnable. As long as the file exists on disk,
+    // we consider it available and let fork/exec handle execution.
+    return true;
 }
 
 bool UciEngine::ensureStarted(const std::string& path, std::string& err) {
     if (child > 0) return true;
     log("--- engine start requested ---");
     log("path=" + path);
-    if (!available(path)) {
-        err = "No executable UCI engine found at " + path;
+
+    std::string execPath = path;
+    if (!available(execPath)) {
+        // Try fallback locations
+        std::vector<std::string> fallbacks = {
+            home_dir() + "/bin/stockfish",
+            "/mnt/us/extensions/kindlechess/bin/stockfish",
+            "./bin/stockfish"
+        };
+        for (const auto& fb : fallbacks) {
+            if (available(fb)) {
+                execPath = fb;
+                log("using fallback engine path: " + execPath);
+                break;
+            }
+        }
+    }
+
+    if (!available(execPath)) {
+        err = "Stockfish engine binary not found at " + path;
         log(err);
         return false;
     }
@@ -83,8 +109,8 @@ bool UciEngine::ensureStarted(const std::string& path, std::string& err) {
         close(inpipe[1]);
         close(outpipe[0]);
         close(outpipe[1]);
-        execl(path.c_str(), path.c_str(), static_cast<char*>(nullptr));
-        dprintf(STDERR_FILENO, "exec failed for %s: errno=%d %s\n", path.c_str(), errno, strerror(errno));
+        execl(execPath.c_str(), execPath.c_str(), static_cast<char*>(nullptr));
+        dprintf(STDERR_FILENO, "exec failed for %s: errno=%d %s\n", execPath.c_str(), errno, strerror(errno));
         _exit(127);
     }
 

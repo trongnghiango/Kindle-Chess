@@ -115,7 +115,7 @@ jobs:
 
           echo "Building Stockfish ${STOCKFISH_TAG} for Kindle ARMv7 with NEON and static C++ runtime..."
 
-          export LDFLAGS="-static-libstdc++ -static-libgcc"
+          export LDFLAGS="-static-libstdc++ -static-libgcc -Wl,-Bstatic -latomic -Wl,-Bdynamic"
 
           # Try building with armv7-neon first for Cortex-A9 hardware SIMD acceleration
           if make -j"$(nproc)" build ARCH=armv7-neon COMP=gcc COMPCXX="$KINDLE_CXX"; then
@@ -160,7 +160,9 @@ jobs:
 
           install -m 0755 /tmp/stockfish-kindle dist/kindlechess/bin/stockfish
 
-          mkdir -p dist/kindlechess/licenses
+          mkdir -p dist/kindlechess/lib dist/kindlechess/licenses
+          # Copy libatomic from toolchain so dynamic loader finds it via LD_LIBRARY_PATH on Kindle
+          find "$HOME/x-tools" -name 'libatomic.so*' -exec cp -L {} dist/kindlechess/lib/ \; 2>/dev/null || true
 
           if [ -f /tmp/Stockfish/Copying.txt ]; then
             cp /tmp/Stockfish/Copying.txt dist/kindlechess/licenses/Stockfish-GPLv3-Copying.txt

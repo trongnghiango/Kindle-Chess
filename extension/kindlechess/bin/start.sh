@@ -14,6 +14,13 @@ lipc-set-prop -i com.lab126.powerd preventScreenSaver 1 2>/dev/null || true
 [ -f "$KINDLECHESS_ENGINE" ] && chmod +x "$KINDLECHESS_ENGINE"
 [ -f "$EXTDIR/bin/kindlechess" ] && chmod +x "$EXTDIR/bin/kindlechess"
 
+# Pre-test Stockfish execution and log any dynamic linker or architecture errors
+if [ -f "$KINDLECHESS_ENGINE" ]; then
+    echo "--- Testing Stockfish engine execution ---" >> "$LOGFILE"
+    "$KINDLECHESS_ENGINE" compiler > "$EXTDIR/data/stockfish_startup.log" 2>&1 || true
+    cat "$EXTDIR/data/stockfish_startup.log" >> "$LOGFILE" 2>&1 || true
+fi
+
 # Rotate log file if it exceeds 256KB
 LOGFILE="$EXTDIR/data/kindlechess.log"
 mkdir -p "$EXTDIR/data"

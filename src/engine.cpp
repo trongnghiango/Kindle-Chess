@@ -132,7 +132,14 @@ bool UciEngine::ensureStarted(const std::string& path, std::string& err) {
 
     sendLine("uci");
     if (!waitForToken("uciok", 20000)) {
-        err = "Engine did not answer uciok. See data/engine.log.";
+        std::string startupLog = home_dir() + "/data/stockfish_startup.log";
+        std::ifstream sfLog(startupLog.c_str());
+        std::string detail;
+        if (sfLog && std::getline(sfLog, detail) && !detail.empty()) {
+            err = "Engine error: " + detail;
+        } else {
+            err = "Engine did not answer uciok. See data/engine.log.";
+        }
         log(err);
         stop();
         return false;

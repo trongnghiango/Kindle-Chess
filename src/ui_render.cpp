@@ -303,18 +303,24 @@ void drawBoard(cairo_t* cr, const Layout& L, const Position& displayPos, const A
 }
 
 void drawCoordinates(cairo_t* cr, const Layout& L, const AppSettings& settings) {
-    if (!settings.showCoordinates || L.cell < 34) return;
+    if (!settings.showCoordinates || L.coordMargin <= 0 || L.cell < 20) return;
     cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-    int fs = std::max(10, settings.uiFontSize - 9);
-    for (int vf = 0; vf < 8; ++vf) {
-        int bf = settings.flipped ? 7 - vf : vf;
-        std::string file(1, static_cast<char>('a' + bf));
-        drawTextCentered(cr, file, L.boardX + vf * L.cell, L.boardY + L.board - fs - 2, L.cell, fs + 2, fs, true);
-    }
+    int fs = std::max(12, std::min(L.coordMargin - 4, settings.uiFontSize - 6));
+
+    // Vertical ranks (1-8) outside on the left
     for (int vr = 0; vr < 8; ++vr) {
         int br = settings.flipped ? 7 - vr : vr;
         std::string rank(1, static_cast<char>('8' - br));
-        drawTextCentered(cr, rank, L.boardX + 2, L.boardY + vr * L.cell + 1, fs + 4, fs + 6, fs, true);
+        drawTextCentered(cr, rank, L.boardX - L.coordMargin, L.boardY + vr * L.cell,
+                         L.coordMargin - 4, L.cell, fs, true);
+    }
+
+    // Horizontal files (a-h) outside at the bottom
+    for (int vf = 0; vf < 8; ++vf) {
+        int bf = settings.flipped ? 7 - vf : vf;
+        std::string file(1, static_cast<char>('a' + bf));
+        drawTextCentered(cr, file, L.boardX + vf * L.cell, L.boardY + L.board + 2,
+                         L.cell, L.coordMargin - 2, fs, true);
     }
 }
 
@@ -409,7 +415,7 @@ void drawCapturedPieces(cairo_t* cr, const Layout& L, const ChessGame& game, con
         drawCapturedRow(cr, "White captured", caps.first, L.panelX + 14, rowY, L.panelW - 28, cell, fs, pieceRenderer, invertPieces);
         drawCapturedRow(cr, "Black captured", caps.second, L.panelX + 14, rowY + cell + rowGap, L.panelW - 28, cell, fs, pieceRenderer, invertPieces);
     } else {
-        int areaTop = L.boardY + L.board + 8;
+        int areaTop = L.boardY + L.board + L.coordMargin + 8;
         int areaBottom = L.H - L.statusH - 8;
         int available = areaBottom - areaTop;
         if (available <= 70) return;

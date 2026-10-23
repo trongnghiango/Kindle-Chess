@@ -24,6 +24,7 @@ struct Layout {
     int margin = 8;
     int topH = 64;
     int statusH = 76;
+    int coordMargin = 0;
     int board = 0, boardX = 0, boardY = 0, cell = 0;
     bool hasPanel = false;
     int panelX = 0, panelY = 0, panelW = 0, panelH = 0;

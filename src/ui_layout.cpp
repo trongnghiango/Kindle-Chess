@@ -52,6 +52,9 @@ Layout computeLayout(int width, int height, const AppSettings& settings) {
     L.topH = toolbarHeightFor(L.W, settings.uiFontSize);
     L.statusH = std::max(88, settings.uiFontSize * 3 + 18);
 
+    // Dedicated coordinate gutter (outside the 8x8 chessboard)
+    L.coordMargin = settings.showCoordinates ? std::max(22, std::min(40, settings.uiFontSize - 4)) : 0;
+
     int availableW = L.W - 2 * L.margin;
     int requestedPanelW = settings.showMoveList ? std::max(160, settings.uiFontSize * 8) : 0;
     // On PW2 (758x1024) and PW3 (1072x1448) in portrait, a side panel squishes the board
@@ -64,19 +67,37 @@ Layout computeLayout(int width, int height, const AppSettings& settings) {
 
     int availableH = L.H - L.topH - L.statusH - 2 * L.margin - L.capturedH;
     if (availableH < 240) availableH = L.H - L.topH - L.statusH - 2 * L.margin;
-    int boardAreaW = availableW - (L.hasPanel ? requestedPanelW + L.margin : 0);
-    int boardMax = std::min(boardAreaW, availableH);
-    L.board = boardMax - (boardMax % 8);
-    if (L.board < 240) L.board = boardMax;
+
+    // Reserve space for external coordinate gutters:
+    // Ranks (1-8) outside on the left: L.coordMargin
+    // Files (a-h) outside at the bottom: L.coordMargin
+    int boardAreaW = availableW - (L.hasPanel ? requestedPanelW + L.margin : 0) - L.coordMargin;
+    int boardAreaH = availableH - L.coordMargin;
+
+    int boardMax = std::min(boardAreaW, boardAreaH);
+    L.board = (boardMax / 8) * 8;
+    if (L.board < 240) L.board = (boardMax >= 8) ? (boardMax - (boardMax % 8)) : 240;
     L.cell = std::max(1, L.board / 8);
-    L.boardX = L.hasPanel ? L.margin : (L.W - L.board) / 2;
-    L.boardY = L.topH + ((availableH - L.board) / 2);
-    if (L.boardY < L.topH + L.margin) L.boardY = L.topH + L.margin;
+
+    // Board position: offset by L.coordMargin so numbers sit on the left outside the board
+    if (L.hasPanel) {
+        L.boardX = L.margin + L.coordMargin;
+    } else {
+        int totalWidth = L.board + L.coordMargin;
+        int leftOffset = (L.W - totalWidth) / 2;
+        L.boardX = leftOffset + L.coordMargin;
+    }
+
+    int totalHeight = L.board + L.coordMargin;
+    int startY = L.topH + ((availableH - totalHeight) / 2);
+    if (startY < L.topH + L.margin) startY = L.topH + L.margin;
+    L.boardY = startY;
+
     if (L.hasPanel) {
         L.panelX = L.boardX + L.board + L.margin;
         L.panelY = L.boardY;
         L.panelW = L.W - L.panelX - L.margin;
-        L.panelH = L.board;
+        L.panelH = L.board + L.coordMargin;
     }
     return L;
 }

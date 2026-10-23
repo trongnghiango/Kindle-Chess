@@ -113,18 +113,12 @@ jobs:
 
           make clean
 
-          echo "Building Stockfish ${STOCKFISH_TAG} for Kindle ARMv7 with NEON and static C++ runtime..."
+          echo "Building Stockfish ${STOCKFISH_TAG} for Kindle ARMv7 with static runtime..."
 
-          export LDFLAGS="-static-libstdc++ -static-libgcc -Wl,-Bstatic -latomic -Wl,-Bdynamic"
+          export LDFLAGS="-static-libstdc++ -static-libgcc -Wl,-rpath,'\$$ORIGIN/../lib' -Wl,-rpath,'\$$ORIGIN/lib'"
 
-          # Try building with armv7-neon first for Cortex-A9 hardware SIMD acceleration
-          if make -j"$(nproc)" build ARCH=armv7-neon COMP=gcc COMPCXX="$KINDLE_CXX"; then
-            echo "Successfully built Stockfish with ARMv7 NEON optimization"
-          else
-            echo "Falling back to standard ARMv7 build..."
-            make clean
-            make -j"$(nproc)" build ARCH=armv7 COMP=gcc COMPCXX="$KINDLE_CXX"
-          fi
+          # Build with standard ARCH=armv7 for maximum compatibility across all Kindle i.MX6/ARMv7 processors
+          make -j"$(nproc)" build ARCH=armv7 COMP=gcc COMPCXX="$KINDLE_CXX"
 
           file stockfish
 

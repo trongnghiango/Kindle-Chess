@@ -255,6 +255,8 @@ bool UciEngine::readLine(std::string& line, int timeoutMs) {
             return true;
         }
 
+        if (read_fd < 0) break;
+
         fd_set set;
         FD_ZERO(&set);
         FD_SET(read_fd, &set);
@@ -269,10 +271,22 @@ bool UciEngine::readLine(std::string& line, int timeoutMs) {
         char buf[1024];
         ssize_t n = read(read_fd, buf, sizeof(buf));
         if (n <= 0) {
+            close(read_fd);
+            read_fd = -1;
+            if (!read_buffer.empty()) {
+                line = read_buffer;
+                read_buffer.clear();
+                return true;
+            }
             log("engine pipe closed while reading");
             return false;
         }
         read_buffer.append(buf, n);
+    }
+    if (!read_buffer.empty() && read_fd < 0) {
+        line = read_buffer;
+        read_buffer.clear();
+        return true;
     }
     return false;
 }
@@ -281,10 +295,21 @@ bool UciEngine::waitForToken(const std::string& token, int timeoutMs) {
     std::string line;
     long long start = nowMs();
     while (nowMs() - start < timeoutMs) {
-        if (readLine(line, 250)) {
-            log("<< " + line);
-            if (line.find(token) != std::string::npos) return true;
+        if (!readLine(line, 250)) {
+            if (child > 0) {
+                int status = 0;
+                pid_t r = waitpid(child, &status, WNOHANG);
+                if (r == child) {
+                    log("engine child process terminated status=" + std::to_string(status));
+                    child = -1;
+                    return false;
+                }
+            }
+            if (read_fd < 0) return false;
+            continue;
         }
+        log("<< " + line);
+        if (line.find(token) != std::string::npos) return true;
     }
     log("timeout waiting for token=" + token);
     return false;

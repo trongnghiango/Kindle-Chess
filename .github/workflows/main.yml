@@ -115,7 +115,7 @@ jobs:
 
           echo "Building Stockfish ${STOCKFISH_TAG} for Kindle ARMv7 with static runtime..."
 
-          export LDFLAGS="-static-libstdc++ -static-libgcc -Wl,-rpath,'\$$ORIGIN/../lib' -Wl,-rpath,'\$$ORIGIN/lib'"
+          export LDFLAGS='-static-libstdc++ -static-libgcc -Wl,-rpath,$ORIGIN/../lib -Wl,-rpath,$ORIGIN/lib'
 
           # Build with standard ARCH=armv7 for maximum compatibility across all Kindle i.MX6/ARMv7 processors
           make -j"$(nproc)" build ARCH=armv7 COMP=gcc COMPCXX="$KINDLE_CXX"

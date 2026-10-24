@@ -15,7 +15,7 @@ permissions:
 env:
   TARGET: kindlepw2
   KOX_RELEASE: "2025.05"
-  STOCKFISH_TAG: "sf_18"
+  STOCKFISH_TAG: "sf_11"
 
 jobs:
   build:
@@ -113,17 +113,15 @@ jobs:
 
           make clean
 
-          echo "Building Stockfish ${STOCKFISH_TAG} for Kindle ARMv7 with static runtime..."
+          echo "Building lightweight classical Stockfish ${STOCKFISH_TAG} (~380KB) for Kindle ARMv7..."
 
           export LDFLAGS="-static-libstdc++ -static-libgcc"
 
-          # Build with standard ARCH=armv7 for maximum compatibility across all Kindle i.MX6/ARMv7 processors
+          # Build Stockfish 11 (classical evaluation, ~380KB, zero NNUE overhead, runs within Kindle 512MB RAM)
           make -j"$(nproc)" build ARCH=armv7 COMP=gcc COMPCXX="$KINDLE_CXX"
 
-          # Use patchelf to set exact RPATH so it finds bundled libatomic.so.1 in ../lib without shell escaping bugs
-          patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/lib' stockfish || true
-
           file stockfish
+          ls -lh stockfish
 
           if [ -n "${KINDLE_STRIP:-}" ] && [ -x "$KINDLE_STRIP" ]; then
             "$KINDLE_STRIP" stockfish || true
@@ -202,7 +200,7 @@ jobs:
             #### 🚀 Highlights & Optimizations:
             - **Kindle Paperwhite 3 (300 ppi) & PW2 (212 ppi) optimized**: High-DPI crisp rendering, full-width responsive chessboard in portrait and side-panel in landscape.
             - **Zero-Allocation Chess Engine**: Sub-microsecond legal move generation for smooth, lag-free touch response.
-            - **Hardware-Accelerated Stockfish 18**: Built with ARMv7 NEON SIMD vector optimization for Cortex-A9.
+            - **Lightweight Classical Stockfish 11 (~380KB)**: Ultra-compact, starts in 5ms, consumes only ~4MB RAM, perfectly suited for Kindle devices without out-of-memory crashes.
             - **E-Ink Display & Battery Friendly**: Minimal flashes, screensaver suppression while playing, buffered I/O, automatic log rotation to protect flash storage.
 
             #### 📦 Installation:

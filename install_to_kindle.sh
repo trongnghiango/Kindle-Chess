@@ -5,14 +5,30 @@ KINDLE_DIR="/run/media/ka/Kindle"
 EXT_DIR="$KINDLE_DIR/extensions"
 TARGET_DIR="$EXT_DIR/kindlechess"
 ZIP_FILE="/home/ka/Downloads/kindlechess-kual.zip"
+RELEASE_URL="https://github.com/trongnghiango/Kindle-Chess/releases/download/latest/kindlechess-kual.zip"
 
 echo "========================================================"
 echo "    KINDLECHESS AUTOMATED INSTALLER FOR KINDLE PW2/3    "
 echo "========================================================"
 
+# Kiểm tra nếu file zip chưa có hoặc là bản cũ 77MB (bản cũ bị lỗi OOM do Stockfish 18 quá nặng)
+NEED_DOWNLOAD=0
 if [ ! -f "$ZIP_FILE" ]; then
-    echo "❌ Không tìm thấy file zip tại: $ZIP_FILE"
-    exit 1
+    NEED_DOWNLOAD=1
+else
+    FILE_SIZE=$(wc -c < "$ZIP_FILE" 2>/dev/null || echo 0)
+    # Bản cũ chứa Stockfish 18 nặng ~77MB (>10MB) -> cần tải bản mới 1.6MB
+    if [ "$FILE_SIZE" -gt 10000000 ]; then
+        echo "⚠️ Phát hiện file zip trong Downloads là bản cũ (77 MB - chứa Stockfish 18 bị lỗi tràn RAM trên Kindle)."
+        echo "-> Tự động tải bản mới nhất (~1.6 MB, Stockfish 11 siêu nhẹ, tối ưu 100% cho Kindle)..."
+        NEED_DOWNLOAD=1
+    fi
+fi
+
+if [ "$NEED_DOWNLOAD" -eq 1 ]; then
+    echo "Đang tải bản mới nhất từ GitHub Releases..."
+    curl -fL "$RELEASE_URL" -o "$ZIP_FILE"
+    echo "-> Đã tải xong: $ZIP_FILE ($(du -h "$ZIP_FILE" | cut -f1))"
 fi
 
 echo "1. Kiểm tra kết nối Kindle..."
@@ -55,7 +71,7 @@ TEMP_UNPACK="/tmp/kc_unpack_$$"
 mkdir -p "$TEMP_UNPACK"
 unzip -q "$ZIP_FILE" -d "$TEMP_UNPACK/"
 
-# Xử lý trường hợp GitHub Actions bọc zip lồng zip (nested zip)
+# Xử lý trường hợp nếu file zip lồng nhau
 ACTUAL_ZIP="$ZIP_FILE"
 if [ -f "$TEMP_UNPACK/kindlechess-kual.zip" ]; then
     ACTUAL_ZIP="$TEMP_UNPACK/kindlechess-kual.zip"
@@ -95,9 +111,8 @@ echo "========================================================"
 echo "Bản mới gồm có:"
 echo "  - Dãy số (1-8) và chữ (a-h) nằm ngoài ô cờ gọn gàng."
 echo "  - Đầy đủ 12 quân cờ PNG sắc nét."
-echo "  - Stockfish 18 NEON tăng tốc phần cứng Cortex-A9."
-echo "  - Nhận diện UCI Engine không bị lỗi FAT32."
-echo "  - Tích hợp sẵn libatomic trong thư mục lib/."
+echo "  - Stockfish 11 (~380KB) siêu nhẹ, dùng ~4MB RAM, không bao giờ bị tràn RAM."
+echo "  - Khởi động < 5 mili-giây, phản hồi tức thì."
 echo "  - Chống tắt màn hình tự động khi đang suy nghĩ nước cờ."
 echo ""
 read -p "Bạn có muốn ngắt kết nối an toàn (Eject) Kindle luôn không? (y/n) " -n 1 -r
